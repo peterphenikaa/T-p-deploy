@@ -82,16 +82,8 @@ class _CartPageState extends State<CartPage> {
 
   Future<Map<String, dynamic>?> _reverseGeocode(num lat, num lng) async {
     try {
-      final uri = Uri.parse(
-        'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
-      );
-      final resp = await http.get(
-        uri,
-        headers: {
-          'User-Agent': 'food_delivery_app/1.0 (+https://example.com)',
-          'Accept-Language': 'vi,en;q=0.8',
-        },
-      );
+      final uri = Uri.parse('$_apiBase/api/reverse-geocode?lat=$lat&lon=$lng');
+      final resp = await http.get(uri);
       if (resp.statusCode == 200) {
         final body = json.decode(resp.body);
         final address = body['address'];

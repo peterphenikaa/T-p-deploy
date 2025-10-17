@@ -60,7 +60,7 @@ router.post('/', async (req, res) => {
       restaurantAddress,
     });
 
-    await order.save();
+  await order.save();
     // Notify: order has been created and is waiting for acceptance
     try {
       await createStatusNotification(order, order.status || 'PENDING');
@@ -68,7 +68,8 @@ router.post('/', async (req, res) => {
     } catch (e) {
       console.error('[NOTIFY] Failed to create notification:', e);
     }
-    res.status(201).json({ message: 'Order created', order });
+  // Include top-level orderId for compatibility with older frontends
+  res.status(201).json({ message: 'Order created', order, orderId: order.orderId });
   } catch (err) {
     console.error('Error creating order:', err);
     res.status(500).json({ error: 'Server error' });

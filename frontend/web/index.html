@@ -33,6 +33,24 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <!-- Temporary emergency snippet: unregister any existing service workers on load
+       so clients fetch the latest build and avoid serving stale cached assets.
+       Remove this after users are migrated to the new build. -->
+  <script>
+    (function() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          for (let r of regs) {
+            try { r.unregister(); } catch(e) { console.warn('SW unregister failed', e); }
+          }
+        }).catch(function(e){ console.warn('SW regs failed', e); });
+      }
+      // Also try to clear caches (best-effort)
+      if (window.caches) {
+        try { caches.keys().then(keys => keys.forEach(k => caches.delete(k))); } catch(e){}
+      }
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

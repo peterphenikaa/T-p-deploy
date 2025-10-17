@@ -17,7 +17,8 @@ const OrderSchema = new mongoose.Schema({
 
   userId: { type: String, required: true },  
   userName: { type: String, required: true },  
-  userPhone: { type: String, required: true },  
+  // userPhone is optional on backend; frontend should still provide it when available
+  userPhone: { type: String, required: false, default: '' },
 
   items: [OrderItemSchema],
   subtotal: { type: Number, required: true },

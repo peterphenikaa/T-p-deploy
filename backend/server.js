@@ -32,7 +32,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
 app.use(express.json());
 
 app.use("/api/foods", foodRoute);
@@ -51,7 +58,6 @@ app.get("/", (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
-
 
 // Start server
 app.listen(PORT, () => {

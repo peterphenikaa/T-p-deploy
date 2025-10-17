@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Restaurant = require('./models/restaurant'); // đúng tên file restaurant.js
 
-mongoose.connect('mongodb://localhost:27017/FoodDeliveryApp')
+mongoose.connect('mongodb+srv://thanhbinh58058:acebinh123@fooddeliveryapp.rrnfz05.mongodb.net/FoodDeliveryApp?retryWrites=true&w=majority&appName=FoodDeliveryApp')
   .then(async () => {
     // Danh sách 4 nhà hàng mẫu, mỗi nhà hàng có 1-2 review
     const restaurants = [

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, TargetPlatform;
+// removed unused import
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart';
@@ -75,23 +74,94 @@ class CheckoutPage extends StatelessWidget {
       print('📥 Response status: ${response.statusCode}');
       print('📥 Response body: ${response.body}');
 
-      if (response.statusCode == 201) {
-        final data = json.decode(response.body);
-        final orderId = data['order']['orderId'];
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        String? orderId;
+        try {
+          if (response.body.isNotEmpty) {
+            final data = json.decode(response.body);
+            // Try common shapes
+            if (data is Map) {
+              if (data['order'] is Map && data['order']['orderId'] != null) {
+                orderId = data['order']['orderId'].toString();
+              } else if (data['orderId'] != null) {
+                orderId = data['orderId'].toString();
+              } else if (data['order'] is String) {
+                orderId = data['order'];
+              }
+            }
+          }
+        } catch (e) {
+          print('⚠️ Could not parse order create response JSON: $e');
+        }
 
-        print('✅ Order created: $orderId');
+        // Fallback: query recent orders for this user and try to find the created one
+        if (orderId == null) {
+          try {
+            final auth = Provider.of<AuthProvider>(context, listen: false);
+            final userId = auth.userId ?? 'guest';
+            final q = Uri.parse('$_apiBase/api/orders')
+                .replace(queryParameters: userId != 'guest' ? {'userId': userId} : null);
 
-        // Clear cart
-        cartProvider.clearCart();
+            final listRes = await http.get(q);
+            if (listRes.statusCode >= 200 && listRes.statusCode < 300 && listRes.body.isNotEmpty) {
+              final listData = json.decode(listRes.body);
+              if (listData is List && listData.isNotEmpty) {
+                // find most recent order that matches total and deliveryAddress
+                final now = DateTime.now();
+                for (final o in listData.reversed) {
+                  try {
+                    if (o is Map) {
+                      final oTotal = o['total'];
+                      final oAddr = o['deliveryAddress'];
+                      final oCreated = o['createdAt'] != null ? DateTime.parse(o['createdAt']) : null;
+                      if (oTotal == total && oAddr == deliveryAddress) {
+                        // prefer recent ones
+                        if (oCreated == null || now.difference(oCreated).inMinutes < 5) {
+                          orderId = o['orderId']?.toString() ?? o['_id']?.toString();
+                          break;
+                        }
+                      }
+                    }
+                  } catch (_) {}
+                }
+              }
+            }
+          } catch (e) {
+            print('⚠️ Fallback order lookup failed: $e');
+          }
+        }
 
-        // Navigate to success page
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => OrderSuccessPage(
-              orderId: orderId,
-              totalAmount: total.toDouble(),
+        if (orderId != null) {
+          print('✅ Order created: $orderId');
+
+          // Clear cart
+          cartProvider.clearCart();
+
+          // Navigate to success page
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => OrderSuccessPage(
+                orderId: orderId!,
+                totalAmount: total.toDouble(),
+              ),
             ),
+          );
+          return;
+        }
+
+        // If we reach here we had a 2xx but couldn't determine orderId
+        print('⚠️ Order created but orderId not returned by server. Response: ${response.body}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đơn hàng được gửi nhưng hệ thống chưa nhận mã. Vui lòng kiểm tra trang Theo dõi đơn.'),
+            backgroundColor: Colors.orange,
           ),
+        );
+        // Clear cart anyway to avoid duplicate orders
+        cartProvider.clearCart();
+        // Navigate to home or orders list so user can check
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (c) => OrderSuccessPage(orderId: 'unknown', totalAmount: total.toDouble())),
         );
       } else {
         print(

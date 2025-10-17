@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart';
@@ -8,20 +9,18 @@ import 'cart_item.dart';
 import 'order_success_page.dart';
 import 'address_provider.dart';
 import '../auth/auth_provider.dart';
+import 'package:food_delivery_app/config/env.dart';
 
 class CheckoutPage extends StatelessWidget {
   const CheckoutPage({Key? key}) : super(key: key);
 
-  String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:3000';
-    }
-    return defaultTargetPlatform == TargetPlatform.android
-        ? 'http://10.0.2.2:3000'
-        : 'http://localhost:3000';
-  }
+  String get _apiBase => API_BASE_URL;
 
-  Future<void> _createOrder(BuildContext context, CartProvider cartProvider, String deliveryAddress) async {
+  Future<void> _createOrder(
+    BuildContext context,
+    CartProvider cartProvider,
+    String deliveryAddress,
+  ) async {
     try {
       final subtotal = cartProvider.totalPrice;
       final deliveryFee = 15000;
@@ -31,7 +30,8 @@ class CheckoutPage extends StatelessWidget {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final addressProv = Provider.of<AddressProvider>(context, listen: false);
       final userId = auth.userId ?? 'guest';
-      final userName = auth.userName ?? addressProv.defaultAddress?.fullName ?? 'Guest';
+      final userName =
+          auth.userName ?? addressProv.defaultAddress?.fullName ?? 'Guest';
       final userEmail = auth.email ?? '';
       final userPhone = addressProv.defaultAddress?.phoneNumber ?? '';
 
@@ -41,15 +41,18 @@ class CheckoutPage extends StatelessWidget {
         'userEmail': userEmail,
         'userPhone': userPhone,
         'items': cartProvider.items
-            .map((item) => {
-                  'foodId': item.foodId ?? item.id, // Use foodId for restaurant lookup
-                  'name': item.name,
-                  'image': item.image,
-                  'size': item.size,
-                  'quantity': item.quantity,
-                  'price': item.price,
-                  'totalPrice': item.totalPrice,
-                })
+            .map(
+              (item) => {
+                'foodId':
+                    item.foodId ?? item.id, // Use foodId for restaurant lookup
+                'name': item.name,
+                'image': item.image,
+                'size': item.size,
+                'quantity': item.quantity,
+                'price': item.price,
+                'totalPrice': item.totalPrice,
+              },
+            )
             .toList(),
         'subtotal': subtotal,
         'deliveryFee': deliveryFee,
@@ -61,8 +64,8 @@ class CheckoutPage extends StatelessWidget {
       };
 
       print('🚀 Creating order: ${json.encode(orderData)}');
-      
-      final url = Uri.parse('$baseUrl/api/orders');
+
+      final url = Uri.parse('$_apiBase/api/orders');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -75,12 +78,12 @@ class CheckoutPage extends StatelessWidget {
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         final orderId = data['order']['orderId'];
-        
+
         print('✅ Order created: $orderId');
-        
+
         // Clear cart
         cartProvider.clearCart();
-        
+
         // Navigate to success page
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
@@ -91,7 +94,9 @@ class CheckoutPage extends StatelessWidget {
           ),
         );
       } else {
-        print('❌ Failed to create order: ${response.statusCode} - ${response.body}');
+        print(
+          '❌ Failed to create order: ${response.statusCode} - ${response.body}',
+        );
         throw Exception('Failed to create order: ${response.statusCode}');
       }
     } catch (e) {
@@ -127,7 +132,11 @@ class CheckoutPage extends StatelessWidget {
             ],
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 18),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Colors.black,
+              size: 18,
+            ),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -195,10 +204,7 @@ class CheckoutPage extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Hãy thêm món ăn yêu thích vào giỏ hàng',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -248,11 +254,7 @@ class CheckoutPage extends StatelessWidget {
           _buildSummaryRow('Phí giao hàng:', '₫${deliveryFee.toString()}'),
           _buildSummaryRow('Phí dịch vụ (10%):', '₫${serviceFee.toString()}'),
           const Divider(height: 20),
-          _buildSummaryRow(
-            'TỔNG CỘNG:',
-            '₫${total.toString()}',
-            isTotal: true,
-          ),
+          _buildSummaryRow('TỔNG CỘNG:', '₫${total.toString()}', isTotal: true),
         ],
       ),
     );
@@ -456,7 +458,10 @@ class CheckoutPage extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                     ),
@@ -530,15 +535,8 @@ class CheckoutPage extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: item.image != null
-                  ? Image.asset(
-                      '${item.image}',
-                      fit: BoxFit.cover,
-                    )
-                  : Icon(
-                      Icons.fastfood,
-                      color: Colors.grey[400],
-                      size: 24,
-                    ),
+                  ? Image.asset('${item.image}', fit: BoxFit.cover)
+                  : Icon(Icons.fastfood, color: Colors.grey[400], size: 24),
             ),
           ),
           const SizedBox(width: 12),
@@ -559,10 +557,7 @@ class CheckoutPage extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Size: ${_getSizeLabel(item.size)} x ${item.quantity}',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
               ],
             ),
@@ -580,14 +575,20 @@ class CheckoutPage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, CartProvider cartProvider, AddressProvider addressProvider) {
+  Widget _buildActionButtons(
+    BuildContext context,
+    CartProvider cartProvider,
+    AddressProvider addressProvider,
+  ) {
     return Column(
       children: [
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () {
-              final deliveryAddress = addressProvider.defaultAddress?.fullAddress ?? 'Địa chỉ chưa cập nhật';
+              final deliveryAddress =
+                  addressProvider.defaultAddress?.fullAddress ??
+                  'Địa chỉ chưa cập nhật';
               _showOrderConfirmation(context, cartProvider, deliveryAddress);
             },
             style: ElevatedButton.styleFrom(
@@ -650,10 +651,7 @@ class CheckoutPage extends StatelessWidget {
               children: [
                 const Text(
                   'QR Code Thanh toán',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
                 Container(
@@ -718,10 +716,7 @@ class CheckoutPage extends StatelessWidget {
                 const SizedBox(height: 20),
                 Text(
                   'Quét mã QR để chuyển khoản thanh toán',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
@@ -761,7 +756,11 @@ class CheckoutPage extends StatelessWidget {
     );
   }
 
-  void _showOrderConfirmation(BuildContext context, CartProvider cartProvider, String deliveryAddress) {
+  void _showOrderConfirmation(
+    BuildContext context,
+    CartProvider cartProvider,
+    String deliveryAddress,
+  ) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -802,9 +801,7 @@ class CheckoutPage extends StatelessWidget {
                 Navigator.of(context).pop();
                 _createOrder(context, cartProvider, deliveryAddress);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
               child: const Text('Xác nhận'),
             ),
           ],

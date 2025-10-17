@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
+import 'package:food_delivery_app/config/env.dart';
 import 'dart:convert';
 import 'cart_provider.dart';
 import 'cart_item.dart';
@@ -157,12 +158,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> {
     final String restId = rawId is Map
         ? (rawId['_id'] ?? rawId['\$oid'] ?? rawId.toString())
         : (rawId?.toString() ?? '');
-    final String baseUrl = kIsWeb
-        ? 'http://localhost:3000'
-        : (defaultTargetPlatform == TargetPlatform.android
-              ? 'http://10.0.2.2:3000'
-              : 'http://localhost:3000');
-    final url = Uri.parse('$baseUrl/api/restaurants/$restId/reviews');
+    final url = Uri.parse('$API_BASE_URL/api/restaurants/$restId/reviews');
     try {
       final resp = await http.get(url);
       if (resp.statusCode == 200) {
@@ -180,12 +176,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> {
     final String restId = rawId is Map
         ? (rawId['_id'] ?? rawId['\$oid'] ?? rawId.toString())
         : (rawId?.toString() ?? '');
-    final String baseUrl = kIsWeb
-        ? 'http://localhost:3000'
-        : (defaultTargetPlatform == TargetPlatform.android
-              ? 'http://10.0.2.2:3000'
-              : 'http://localhost:3000');
-    final url = Uri.parse('$baseUrl/api/restaurants/$restId/reviews');
+    final url = Uri.parse('$API_BASE_URL/api/restaurants/$restId/reviews');
     final review = Review(user: 'Bạn', rating: rating, comment: comment);
     try {
       final resp = await http.post(
@@ -216,8 +207,7 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> {
     });
 
     try {
-      final baseUrl = 'http://localhost:3000';
-      final url = Uri.parse('$baseUrl/api/foods');
+      final url = Uri.parse('$API_BASE_URL/api/foods');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -629,7 +619,9 @@ class _RestaurantDetailPageState extends State<RestaurantDetailPage> {
                                   leading: CircleAvatar(
                                     radius: 20,
                                     backgroundColor: Colors.grey[200],
-                                    backgroundImage: AssetImage('homepageUser/user_icon.jpg'),
+                                    backgroundImage: AssetImage(
+                                      'homepageUser/user_icon.jpg',
+                                    ),
                                   ),
                                   title: Row(
                                     children: [
@@ -717,10 +709,7 @@ class _FoodCard extends StatelessWidget {
                     top: Radius.circular(16),
                   ),
                   child: food['image'] != null
-                      ? Image.asset(
-                          '${food['image']}',
-                          fit: BoxFit.cover,
-                        )
+                      ? Image.asset('${food['image']}', fit: BoxFit.cover)
                       : const Icon(
                           Icons.fastfood,
                           size: 40,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'product_list_page.dart';
@@ -13,6 +14,7 @@ import 'restaurant_detail_page.dart';
 import 'address_provider.dart';
 import 'edit_address_page.dart';
 import '../auth/auth_provider.dart';
+import 'package:food_delivery_app/config/env.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -41,19 +43,12 @@ class _HomePageState extends State<HomePage> {
     _loadLatestLocation();
   }
 
-  String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:3000';
-    }
-    return defaultTargetPlatform == TargetPlatform.android
-        ? 'http://10.0.2.2:3000'
-        : 'http://localhost:3000';
-  }
+  String get _apiBase => API_BASE_URL;
 
   Future<void> _loadRestaurants() async {
     setState(() => isLoadingRestaurants = true);
     try {
-      final url = Uri.parse('$baseUrl/api/restaurants');
+      final url = Uri.parse('$_apiBase/api/restaurants');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -80,7 +75,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadLatestLocation() async {
     try {
       const userId = 'anonymous';
-      final url = Uri.parse('$baseUrl/api/location/$userId/latest');
+      final url = Uri.parse('$_apiBase/api/location/$userId/latest');
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -106,8 +101,9 @@ class _HomePageState extends State<HomePage> {
   Future<Map<String, dynamic>?> _reverseGeocode(num lat, num lng) async {
     try {
       final uri = Uri.parse(
-          'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='
-          '$lat&lon=$lng&zoom=18&addressdetails=1');
+        'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='
+        '$lat&lon=$lng&zoom=18&addressdetails=1',
+      );
       final resp = await http.get(
         uri,
         headers: {
@@ -121,14 +117,35 @@ class _HomePageState extends State<HomePage> {
         String? display; // Compose VN style manually
         Map<String, String> components = {};
         if (address is Map) {
-          final road = address['road'] ?? address['residential'] ?? address['pedestrian'];
+          final road =
+              address['road'] ??
+              address['residential'] ??
+              address['pedestrian'];
           final house = address['house_number'];
-          final ward = address['ward'] ?? address['suburb'] ?? address['neighbourhood'] ?? address['quarter'] ?? address['hamlet'] ?? address['city_district'];
-          final district = address['city_district'] ?? address['district'] ?? address['county'] ?? address['state_district'];
-          final city = address['city'] ?? address['town'] ?? address['village'] ?? address['state'] ?? address['province'];
+          final ward =
+              address['ward'] ??
+              address['suburb'] ??
+              address['neighbourhood'] ??
+              address['quarter'] ??
+              address['hamlet'] ??
+              address['city_district'];
+          final district =
+              address['city_district'] ??
+              address['district'] ??
+              address['county'] ??
+              address['state_district'];
+          final city =
+              address['city'] ??
+              address['town'] ??
+              address['village'] ??
+              address['state'] ??
+              address['province'];
 
           String? street;
-          if (road != null && house != null) street = '$house $road'; else street = road?.toString();
+          if (road != null && house != null)
+            street = '$house $road';
+          else
+            street = road?.toString();
           if (street != null) components['street'] = street;
           if (ward != null) components['ward'] = ward.toString();
           if (district != null) components['district'] = district.toString();
@@ -138,13 +155,13 @@ class _HomePageState extends State<HomePage> {
           components['street'],
           components['ward'],
           components['district'],
-          components['city']
-        ]
-            .whereType<String>()
-            .where((s) => s.trim().isNotEmpty)
-            .join(', ');
+          components['city'],
+        ].whereType<String>().where((s) => s.trim().isNotEmpty).join(', ');
 
-        return {'display': display.isNotEmpty ? display : null, 'components': components};
+        return {
+          'display': display.isNotEmpty ? display : null,
+          'components': components,
+        };
       }
     } catch (_) {}
     return null;
@@ -167,7 +184,9 @@ class _HomePageState extends State<HomePage> {
                       CircleAvatar(
                         radius: 20,
                         backgroundColor: Colors.grey[200],
-                        backgroundImage: AssetImage('homepageUser/user_icon.jpg'),
+                        backgroundImage: AssetImage(
+                          'homepageUser/user_icon.jpg',
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -176,9 +195,8 @@ class _HomePageState extends State<HomePage> {
                             final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const EditAddressPage(
-                                  userId: 'user123',
-                                ),
+                                builder: (context) =>
+                                    const EditAddressPage(userId: 'user123'),
                               ),
                             );
                             if (result == true) {
@@ -197,18 +215,19 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ),
                               const SizedBox(height: 2),
-                                Text(
-                                  addressProvider.defaultAddress?.shortAddress ??
-                                      (_latestComponents != null
-                                          ? [
-                                              _latestComponents?['ward'],
-                                              _latestComponents?['district'],
-                                              _latestComponents?['city']
-                                            ]
+                              Text(
+                                addressProvider.defaultAddress?.shortAddress ??
+                                    (_latestComponents != null
+                                        ? [
+                                                _latestComponents?['ward'],
+                                                _latestComponents?['district'],
+                                                _latestComponents?['city'],
+                                              ]
                                               .whereType<String>()
                                               .where((s) => s.trim().isNotEmpty)
                                               .join(', ')
-                                          : (_latestAddress ?? "Văn phòng Halal Lab")),
+                                        : (_latestAddress ??
+                                              "Văn phòng Halal Lab")),
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.w500,
@@ -496,7 +515,9 @@ class _HomePageState extends State<HomePage> {
                         ? '${restaurant['image']}'
                         : 'homepageUser/restaurant_img1.jpg',
                     name: restaurant['name'] ?? 'Restaurant',
-                    tags: (restaurant['categories'] as List?)?.join(' - ') ?? 'Food',
+                    tags:
+                        (restaurant['categories'] as List?)?.join(' - ') ??
+                        'Food',
                     rating: (restaurant['rating'] ?? 4.7).toDouble(),
                     free: true,
                     duration: '${restaurant['deliveryTime'] ?? 20} phút',
@@ -504,9 +525,8 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => RestaurantDetailPage(
-                            restaurant: restaurant,
-                          ),
+                          builder: (context) =>
+                              RestaurantDetailPage(restaurant: restaurant),
                         ),
                       );
                     },
@@ -521,11 +541,7 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showLogoutDialog(context),
         backgroundColor: Colors.blue,
-        child: const Icon(
-          Icons.logout,
-          color: Colors.white,
-          size: 24,
-        ),
+        child: const Icon(Icons.logout, color: Colors.white, size: 24),
         elevation: 4,
         mini: false,
       ),
@@ -568,11 +584,7 @@ class _HomePageState extends State<HomePage> {
     Provider.of<CartProvider>(context, listen: false).clearCart();
 
     // Navigate to login
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/login',
-      (route) => false,
-    );
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
 
     // Toast
     ScaffoldMessenger.of(context).showSnackBar(
@@ -690,10 +702,10 @@ class RestaurantCard extends StatelessWidget {
                 color: Colors.grey[50],
                 child: ColorFiltered(
                   colorFilter: ColorFilter.matrix([
-                    1.2, 0, 0, 0, 10,    // Red channel - tăng brightness
-                    0, 1.2, 0, 0, 10,    // Green channel
-                    0, 0, 1.2, 0, 10,    // Blue channel
-                    0, 0, 0, 1, 0,       // Alpha channel
+                    1.2, 0, 0, 0, 10, // Red channel - tăng brightness
+                    0, 1.2, 0, 0, 10, // Green channel
+                    0, 0, 1.2, 0, 10, // Blue channel
+                    0, 0, 0, 1, 0, // Alpha channel
                   ]),
                   child: Image.asset(
                     imagePath,

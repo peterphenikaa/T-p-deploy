@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:food_delivery_app/config/env.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_provider.dart';
 import '../home_page_user/shipper_home.dart';
@@ -52,7 +53,7 @@ class _LoginFormPageState extends State<LoginFormPage> {
 
     setState(() => _loading = true);
     try {
-      final uri = Uri.parse('http://localhost:3000/api/auth/login');
+      final uri = Uri.parse('$API_BASE_URL/api/auth/login');
       final res = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
@@ -68,8 +69,10 @@ class _LoginFormPageState extends State<LoginFormPage> {
           final email = (user['email'] ?? '').toString();
           final name = (user['name'] ?? '').toString();
           if (id.isNotEmpty) {
-            Provider.of<AuthProvider>(context, listen: false)
-                .setUser(id: id, name: name, email: email);
+            Provider.of<AuthProvider>(
+              context,
+              listen: false,
+            ).setUser(id: id, name: name, email: email);
           }
         } catch (_) {}
         ScaffoldMessenger.of(context).showSnackBar(
@@ -115,7 +118,10 @@ class _LoginFormPageState extends State<LoginFormPage> {
     }
   }
 
-  Future<void> _persistCredentials({required String email, required String password}) async {
+  Future<void> _persistCredentials({
+    required String email,
+    required String password,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     if (_remember) {
       await prefs.setBool('remember_me', true);
@@ -216,8 +222,14 @@ class _LoginFormPageState extends State<LoginFormPage> {
                           borderSide: BorderSide.none,
                         ),
                         suffixIcon: IconButton(
-                          icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
                         ),
                       ),
                     ),
@@ -233,7 +245,8 @@ class _LoginFormPageState extends State<LoginFormPage> {
                                 final value = v ?? false;
                                 setState(() => _remember = value);
                                 if (!value) {
-                                  final prefs = await SharedPreferences.getInstance();
+                                  final prefs =
+                                      await SharedPreferences.getInstance();
                                   await prefs.remove('remember_me');
                                   await prefs.remove('email');
                                   await prefs.remove('password');

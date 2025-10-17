@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:food_delivery_app/config/env.dart';
 import 'address_model.dart';
 
 class EditAddressPage extends StatefulWidget {
@@ -38,7 +39,7 @@ class _EditAddressPageState extends State<EditAddressPage> {
   final _districtController = TextEditingController();
   final _cityController = TextEditingController();
   final _noteController = TextEditingController();
-  
+
   bool _isDefault = false;
   bool _isLoading = false;
 
@@ -56,19 +57,23 @@ class _EditAddressPageState extends State<EditAddressPage> {
       _isDefault = widget.address!.isDefault;
     } else {
       // Pre-fill from reverse geocoded components if provided
-      if (widget.initialFullName != null && widget.initialFullName!.trim().isNotEmpty) {
+      if (widget.initialFullName != null &&
+          widget.initialFullName!.trim().isNotEmpty) {
         _fullNameController.text = widget.initialFullName!;
       }
-      if (widget.initialPhoneNumber != null && widget.initialPhoneNumber!.trim().isNotEmpty) {
+      if (widget.initialPhoneNumber != null &&
+          widget.initialPhoneNumber!.trim().isNotEmpty) {
         _phoneController.text = widget.initialPhoneNumber!;
       }
-      if (widget.initialStreet != null && widget.initialStreet!.trim().isNotEmpty) {
+      if (widget.initialStreet != null &&
+          widget.initialStreet!.trim().isNotEmpty) {
         _streetController.text = widget.initialStreet!;
       }
       if (widget.initialWard != null && widget.initialWard!.trim().isNotEmpty) {
         _wardController.text = widget.initialWard!;
       }
-      if (widget.initialDistrict != null && widget.initialDistrict!.trim().isNotEmpty) {
+      if (widget.initialDistrict != null &&
+          widget.initialDistrict!.trim().isNotEmpty) {
         _districtController.text = widget.initialDistrict!;
       }
       if (widget.initialCity != null && widget.initialCity!.trim().isNotEmpty) {
@@ -97,7 +102,7 @@ class _EditAddressPageState extends State<EditAddressPage> {
     });
 
     try {
-      final baseUrl = 'http://localhost:3000';
+      final _apiBase = API_BASE_URL;
       final addressData = {
         'userId': widget.userId,
         'fullName': _fullNameController.text.trim(),
@@ -106,18 +111,20 @@ class _EditAddressPageState extends State<EditAddressPage> {
         'ward': _wardController.text.trim(),
         'district': _districtController.text.trim(),
         'city': _cityController.text.trim(),
-        'note': _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
+        'note': _noteController.text.trim().isEmpty
+            ? null
+            : _noteController.text.trim(),
         'isDefault': _isDefault,
       };
 
       final response = widget.address == null
           ? await http.post(
-              Uri.parse('$baseUrl/api/addresses'),
+              Uri.parse('$_apiBase/api/addresses'),
               headers: {'Content-Type': 'application/json'},
               body: json.encode(addressData),
             )
           : await http.put(
-              Uri.parse('$baseUrl/api/addresses/${widget.address!.id}'),
+              Uri.parse('$_apiBase/api/addresses/${widget.address!.id}'),
               headers: {'Content-Type': 'application/json'},
               body: json.encode(addressData),
             );
@@ -125,7 +132,11 @@ class _EditAddressPageState extends State<EditAddressPage> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(widget.address == null ? 'Thêm địa chỉ thành công!' : 'Cập nhật địa chỉ thành công!'),
+            content: Text(
+              widget.address == null
+                  ? 'Thêm địa chỉ thành công!'
+                  : 'Cập nhật địa chỉ thành công!',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -135,10 +146,7 @@ class _EditAddressPageState extends State<EditAddressPage> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
       );
     } finally {
       setState(() {
@@ -169,7 +177,11 @@ class _EditAddressPageState extends State<EditAddressPage> {
             ],
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 18),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Colors.black,
+              size: 18,
+            ),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -197,7 +209,6 @@ class _EditAddressPageState extends State<EditAddressPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               _buildFormCard(),
               const SizedBox(height: 20),
               _buildDefaultToggle(),
@@ -243,7 +254,7 @@ class _EditAddressPageState extends State<EditAddressPage> {
             ],
           ),
           const SizedBox(height: 20),
-          
+
           // Full Name
           _buildTextField(
             controller: _fullNameController,
@@ -258,7 +269,7 @@ class _EditAddressPageState extends State<EditAddressPage> {
             },
           ),
           const SizedBox(height: 16),
-          
+
           // Phone Number
           _buildTextField(
             controller: _phoneController,
@@ -277,7 +288,7 @@ class _EditAddressPageState extends State<EditAddressPage> {
             },
           ),
           const SizedBox(height: 16),
-          
+
           // Street
           _buildTextField(
             controller: _streetController,
@@ -292,7 +303,7 @@ class _EditAddressPageState extends State<EditAddressPage> {
             },
           ),
           const SizedBox(height: 16),
-          
+
           // Ward
           _buildTextField(
             controller: _wardController,
@@ -307,7 +318,7 @@ class _EditAddressPageState extends State<EditAddressPage> {
             },
           ),
           const SizedBox(height: 16),
-          
+
           // District
           _buildTextField(
             controller: _districtController,
@@ -322,7 +333,7 @@ class _EditAddressPageState extends State<EditAddressPage> {
             },
           ),
           const SizedBox(height: 16),
-          
+
           // City
           _buildTextField(
             controller: _cityController,
@@ -337,7 +348,7 @@ class _EditAddressPageState extends State<EditAddressPage> {
             },
           ),
           const SizedBox(height: 16),
-          
+
           // Note
           _buildTextField(
             controller: _noteController,
@@ -513,9 +524,9 @@ class _EditAddressPageState extends State<EditAddressPage> {
     });
 
     try {
-      final baseUrl = 'http://localhost:3000';
+      final _apiBase = API_BASE_URL;
       final response = await http.delete(
-        Uri.parse('$baseUrl/api/addresses/${widget.address!.id}'),
+        Uri.parse('$_apiBase/api/addresses/${widget.address!.id}'),
       );
 
       if (response.statusCode == 200) {
@@ -531,10 +542,7 @@ class _EditAddressPageState extends State<EditAddressPage> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
       );
     } finally {
       setState(() {

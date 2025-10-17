@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:food_delivery_app/config/env.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'home_pages.dart';
@@ -74,8 +75,8 @@ class _PermissionPageState extends State<PermissionPage> {
           'timestamp': DateTime.now().millisecondsSinceEpoch,
         });
 
-        final uriLocal = Uri.parse('http://localhost:3000/api/location');
-        final uriEmu = Uri.parse('http://10.0.2.2:3000/api/location');
+        final uriLocal = Uri.parse('$API_BASE_URL/api/location');
+        final uriEmu = Uri.parse('$API_BASE_URL/api/location');
 
         try {
           final r = await http
@@ -109,7 +110,7 @@ class _PermissionPageState extends State<PermissionPage> {
             }
           } catch (err2) {
             // neither host worked
-            print('Failed to send location to localhost and emulator: $err2');
+            print('Failed to send location to backend: $err2');
             setState(() {
               _error = 'Could not send location to server';
             });

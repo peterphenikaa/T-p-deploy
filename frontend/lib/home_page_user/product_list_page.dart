@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
+import 'package:food_delivery_app/config/env.dart';
 import 'package:provider/provider.dart';
 import 'product_detail_page.dart';
 import 'cart_provider.dart';
@@ -38,11 +39,7 @@ class _ProductListPageState extends State<ProductListPage> {
   }
 
   Future<void> fetchProducts() async {
-    final String baseUrl = kIsWeb
-        ? 'http://localhost:3000'
-        : (defaultTargetPlatform == TargetPlatform.android
-              ? 'http://10.0.2.2:3000'
-              : 'http://localhost:3000');
+    final String baseUrl = API_BASE_URL;
 
     final normalizedCategory = currentCategory.trim().toLowerCase();
     final bool isAll = normalizedCategory == 'tất cả danh mục';

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:food_delivery_app/config/env.dart';
 
 class RegisterFormPage extends StatefulWidget {
   @override
@@ -17,14 +18,14 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
   final _wardController = TextEditingController();
   final _cityController = TextEditingController();
   final _phoneController = TextEditingController();
-  
+
   bool _loading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
   Future<void> _register() async {
     print('🚀 Register button pressed');
-    
+
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
@@ -34,25 +35,30 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
     final city = _cityController.text.trim();
 
     // Validation
-    if (name.isEmpty || email.isEmpty || password.isEmpty || houseNumber.isEmpty || ward.isEmpty || city.isEmpty) {
+    if (name.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        houseNumber.isEmpty ||
+        ward.isEmpty ||
+        city.isEmpty) {
       print('❌ Validation failed - empty fields');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Vui lòng điền đầy đủ thông tin')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Vui lòng điền đầy đủ thông tin')));
       return;
     }
     if (_phoneController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Vui lòng nhập số điện thoại')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Vui lòng nhập số điện thoại')));
       return;
     }
 
     if (password != confirmPassword) {
       print('❌ Validation failed - passwords do not match');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Mật khẩu không khớp')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Mật khẩu không khớp')));
       return;
     }
 
@@ -66,24 +72,20 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
 
     print('✅ Validation passed, starting API call');
     setState(() => _loading = true);
-    
+
     try {
-      final uri = Uri.parse('http://localhost:3000/api/auth/register');
+      final uri = Uri.parse('$API_BASE_URL/api/auth/register');
       final requestBody = jsonEncode({
         'name': name,
         'email': email,
         'password': password,
         'phoneNumber': _phoneController.text.trim(),
-        'address': {
-          'houseNumber': houseNumber,
-          'ward': ward,
-          'city': city,
-        },
+        'address': {'houseNumber': houseNumber, 'ward': ward, 'city': city},
       });
-      
+
       print('🌐 API URL: $uri');
       print('📤 Request body: $requestBody');
-      
+
       final res = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
@@ -96,9 +98,9 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
       if (res.statusCode == 201) {
         final body = jsonDecode(res.body);
         print('✅ Registration successful');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Tạo tài khoản thành công!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Tạo tài khoản thành công!')));
         // Navigate back to login
         Navigator.pop(context);
       } else {
@@ -110,9 +112,9 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
       }
     } catch (e) {
       print('💥 Exception occurred: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi mạng: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi mạng: $e')));
     } finally {
       print('🔄 Setting loading = false');
       setState(() => _loading = false);
@@ -217,11 +219,12 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
                   children: [
                     SizedBox(height: 20),
                     // Name field
-                    Text('TÊN', 
+                    Text(
+                      'TÊN',
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.w500,
                         color: Colors.grey[600],
-                      )
+                      ),
                     ),
                     SizedBox(height: 8),
                     TextField(
@@ -236,19 +239,20 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
                           borderSide: BorderSide.none,
                         ),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16, 
-                          vertical: 16
+                          horizontal: 16,
+                          vertical: 16,
                         ),
                       ),
                     ),
                     SizedBox(height: 20),
-                    
+
                     // Email field
-                    Text('EMAIL', 
+                    Text(
+                      'EMAIL',
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.w500,
                         color: Colors.grey[600],
-                      )
+                      ),
                     ),
                     SizedBox(height: 8),
                     TextField(
@@ -263,19 +267,20 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
                           borderSide: BorderSide.none,
                         ),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16, 
-                          vertical: 16
+                          horizontal: 16,
+                          vertical: 16,
                         ),
                       ),
                     ),
                     SizedBox(height: 20),
 
                     // House Number field
-                    Text('SỐ NHÀ', 
+                    Text(
+                      'SỐ NHÀ',
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.w500,
                         color: Colors.grey[600],
-                      )
+                      ),
                     ),
                     SizedBox(height: 8),
                     TextField(
@@ -290,47 +295,49 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
                           borderSide: BorderSide.none,
                         ),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16, 
-                          vertical: 16
+                          horizontal: 16,
+                          vertical: 16,
                         ),
                       ),
                     ),
                     SizedBox(height: 20),
 
-            // Phone field
-            Text('SỐ ĐIỆN THOẠI', 
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[600],
-              )
-            ),
-            SizedBox(height: 8),
-            TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                hintText: '0123456789',
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                filled: true,
-                fillColor: Color(0xFFF3F7FB),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 16, 
-                  vertical: 16
-                ),
-              ),
-            ),
-            SizedBox(height: 20),
-
-                    // Ward field
-                    Text('PHƯỜNG/XÃ', 
+                    // Phone field
+                    Text(
+                      'SỐ ĐIỆN THOẠI',
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.w500,
                         color: Colors.grey[600],
-                      )
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    TextField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        hintText: '0123456789',
+                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        filled: true,
+                        fillColor: Color(0xFFF3F7FB),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 20),
+
+                    // Ward field
+                    Text(
+                      'PHƯỜNG/XÃ',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[600],
+                      ),
                     ),
                     SizedBox(height: 8),
                     TextField(
@@ -345,19 +352,20 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
                           borderSide: BorderSide.none,
                         ),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16, 
-                          vertical: 16
+                          horizontal: 16,
+                          vertical: 16,
                         ),
                       ),
                     ),
                     SizedBox(height: 20),
 
                     // City field
-                    Text('THÀNH PHỐ', 
+                    Text(
+                      'THÀNH PHỐ',
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.w500,
                         color: Colors.grey[600],
-                      )
+                      ),
                     ),
                     SizedBox(height: 8),
                     TextField(
@@ -372,19 +380,20 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
                           borderSide: BorderSide.none,
                         ),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16, 
-                          vertical: 16
+                          horizontal: 16,
+                          vertical: 16,
                         ),
                       ),
                     ),
                     SizedBox(height: 20),
-                    
+
                     // Password field
-                    Text('MẬT KHẨU', 
+                    Text(
+                      'MẬT KHẨU',
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.w500,
                         color: Colors.grey[600],
-                      )
+                      ),
                     ),
                     SizedBox(height: 8),
                     TextField(
@@ -400,29 +409,31 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
                           borderSide: BorderSide.none,
                         ),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16, 
-                          vertical: 16
+                          horizontal: 16,
+                          vertical: 16,
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword 
-                              ? Icons.visibility_off_outlined 
-                              : Icons.visibility_outlined,
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
                             color: Colors.grey[500],
                           ),
-                          onPressed: () => setState(() => 
-                            _obscurePassword = !_obscurePassword),
+                          onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
                         ),
                       ),
                     ),
                     SizedBox(height: 20),
-                    
+
                     // Confirm Password field
-                    Text('NHẬP LẠI MẬT KHẨU', 
+                    Text(
+                      'NHẬP LẠI MẬT KHẨU',
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.w500,
                         color: Colors.grey[600],
-                      )
+                      ),
                     ),
                     SizedBox(height: 8),
                     TextField(
@@ -438,23 +449,25 @@ class _RegisterFormPageState extends State<RegisterFormPage> {
                           borderSide: BorderSide.none,
                         ),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16, 
-                          vertical: 16
+                          horizontal: 16,
+                          vertical: 16,
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscureConfirmPassword 
-                              ? Icons.visibility_off_outlined 
-                              : Icons.visibility_outlined,
+                            _obscureConfirmPassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
                             color: Colors.grey[500],
                           ),
-                          onPressed: () => setState(() => 
-                            _obscureConfirmPassword = !_obscureConfirmPassword),
+                          onPressed: () => setState(
+                            () => _obscureConfirmPassword =
+                                !_obscureConfirmPassword,
+                          ),
                         ),
                       ),
                     ),
                     SizedBox(height: 32),
-                    
+
                     // Sign Up button
                     ElevatedButton(
                       onPressed: _loading ? null : _register,

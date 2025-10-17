@@ -1,6 +1,5 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:food_delivery_app/config/env.dart';
 import 'package:http/http.dart' as http;
 
 class AdminApi {
@@ -9,18 +8,15 @@ class AdminApi {
   const AdminApi({required this.baseUrl});
 
   factory AdminApi.fromDefaults() {
-    if (kIsWeb) {
-      return AdminApi(baseUrl: 'http://localhost:3000');
-    }
-    if (Platform.isAndroid) {
-      return AdminApi(baseUrl: 'http://10.0.2.2:3000');
-    }
-    return AdminApi(baseUrl: 'http://localhost:3000');
+    // Use centralized API base URL
+    return AdminApi(baseUrl: API_BASE_URL);
   }
 
   Future<AdminCounters> fetchCounters({String? restaurantId}) async {
     final qs = restaurantId != null ? '?restaurantId=$restaurantId' : '';
-    final res = await http.get(Uri.parse('$baseUrl/api/orders/stats/counters$qs'));
+    final res = await http.get(
+      Uri.parse('$baseUrl/api/orders/stats/counters$qs'),
+    );
     if (res.statusCode != 200) {
       throw Exception('Lỗi tải counters: ${res.statusCode}');
     }
@@ -31,21 +27,28 @@ class AdminApi {
     );
   }
 
-  Future<List<RevenuePoint>> fetchRevenue({String granularity = 'daily', String? restaurantId}) async {
+  Future<List<RevenuePoint>> fetchRevenue({
+    String granularity = 'daily',
+    String? restaurantId,
+  }) async {
     final extra = restaurantId != null ? '&restaurantId=$restaurantId' : '';
-    final url = Uri.parse('$baseUrl/api/orders/stats/revenue?granularity=$granularity$extra');
+    final url = Uri.parse(
+      '$baseUrl/api/orders/stats/revenue?granularity=$granularity$extra',
+    );
     final res = await http.get(url);
     if (res.statusCode != 200) {
       throw Exception('Lỗi tải doanh thu: ${res.statusCode}');
     }
     final data = json.decode(res.body) as Map<String, dynamic>;
     final series = (data['series'] as List<dynamic>? ?? [])
-        .map((e) => RevenuePoint(
-              period: e['period'] as String,
-              // Backend hiện tại trả về 'totalAmount'; fallback sang 'total' nếu có
-              total: ((e['totalAmount'] ?? e['total']) as num).toDouble(),
-              tooltip: (e['tooltip'] as String?) ?? '',
-            ))
+        .map(
+          (e) => RevenuePoint(
+            period: e['period'] as String,
+            // Backend hiện tại trả về 'totalAmount'; fallback sang 'total' nếu có
+            total: ((e['totalAmount'] ?? e['total']) as num).toDouble(),
+            tooltip: (e['tooltip'] as String?) ?? '',
+          ),
+        )
         .toList();
     return series;
   }
@@ -59,9 +62,14 @@ class AdminApi {
     return List<Map<String, dynamic>>.from(data);
   }
 
-  Future<List<Map<String, dynamic>>> fetchTopFoods({int limit = 3, String? restaurantId}) async {
+  Future<List<Map<String, dynamic>>> fetchTopFoods({
+    int limit = 3,
+    String? restaurantId,
+  }) async {
     final extra = restaurantId != null ? '&restaurantId=$restaurantId' : '';
-    final res = await http.get(Uri.parse('$baseUrl/api/orders/stats/top-foods?limit=$limit$extra'));
+    final res = await http.get(
+      Uri.parse('$baseUrl/api/orders/stats/top-foods?limit=$limit$extra'),
+    );
     if (res.statusCode != 200) {
       throw Exception('Lỗi tải món phổ biến: ${res.statusCode}');
     }
@@ -69,11 +77,16 @@ class AdminApi {
     return List<Map<String, dynamic>>.from(data);
   }
 
-  Future<List<Map<String, dynamic>>> fetchFoods({String? category, String? search}) async {
+  Future<List<Map<String, dynamic>>> fetchFoods({
+    String? category,
+    String? search,
+  }) async {
     final params = <String, String>{};
     if (category != null && category.isNotEmpty) params['category'] = category;
     if (search != null && search.isNotEmpty) params['search'] = search;
-    final uri = Uri.parse('$baseUrl/api/foods').replace(queryParameters: params.isEmpty ? null : params);
+    final uri = Uri.parse(
+      '$baseUrl/api/foods',
+    ).replace(queryParameters: params.isEmpty ? null : params);
     final res = await http.get(uri);
     if (res.statusCode != 200) {
       throw Exception('Lỗi tải món ăn: ${res.statusCode}');
@@ -84,7 +97,11 @@ class AdminApi {
 
   Future<Map<String, dynamic>> createFood(Map<String, dynamic> body) async {
     final uri = Uri.parse('$baseUrl/api/foods');
-    final res = await http.post(uri, headers: {'Content-Type': 'application/json'}, body: json.encode(body));
+    final res = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(body),
+    );
     if (res.statusCode != 201) {
       throw Exception('Lỗi tạo món: ${res.statusCode} ${res.body}');
     }
@@ -98,7 +115,10 @@ class AdminApi {
     }
   }
 
-  Future<Map<String, dynamic>> updateFood(String id, Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> updateFood(
+    String id,
+    Map<String, dynamic> body,
+  ) async {
     final res = await http.put(
       Uri.parse('$baseUrl/api/foods/$id'),
       headers: {'Content-Type': 'application/json'},
@@ -157,7 +177,10 @@ class AdminApi {
     return data['totalUsers'] as int;
   }
 
-  Future<Map<String, dynamic>> updateUser(String id, Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> updateUser(
+    String id,
+    Map<String, dynamic> body,
+  ) async {
     final res = await http.put(
       Uri.parse('$baseUrl/api/users/$id'),
       headers: {'Content-Type': 'application/json'},
@@ -187,7 +210,9 @@ class AdminApi {
   }
 
   Future<int> fetchShipperCount() async {
-    final res = await http.get(Uri.parse('$baseUrl/api/users/stats/count?role=shipper'));
+    final res = await http.get(
+      Uri.parse('$baseUrl/api/users/stats/count?role=shipper'),
+    );
     if (res.statusCode != 200) {
       throw Exception('Lỗi tải số lượng shipper: ${res.statusCode}');
     }
@@ -206,7 +231,9 @@ class RevenuePoint {
   final String period;
   final double total;
   final String tooltip; // optional formatted date for daily buckets
-  const RevenuePoint({required this.period, required this.total, this.tooltip = ''});
+  const RevenuePoint({
+    required this.period,
+    required this.total,
+    this.tooltip = '',
+  });
 }
-
-

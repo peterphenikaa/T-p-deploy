@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart';
@@ -10,6 +11,7 @@ import 'checkout_page.dart';
 import 'address_provider.dart';
 import 'address_model.dart';
 import 'edit_address_page.dart';
+import 'package:food_delivery_app/config/env.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({Key? key}) : super(key: key);
@@ -31,14 +33,7 @@ class _CartPageState extends State<CartPage> {
   bool _loadingLocation = false;
   String? _locationError;
 
-  String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:3000';
-    }
-    return defaultTargetPlatform == TargetPlatform.android
-        ? 'http://10.0.2.2:3000'
-        : 'http://localhost:3000';
-  }
+  String get _apiBase => API_BASE_URL;
 
   Future<void> _loadLatestLocation() async {
     setState(() {
@@ -48,7 +43,7 @@ class _CartPageState extends State<CartPage> {
     try {
       // NOTE: align with userId used when posting in PermissionPage
       const userId = 'anonymous';
-      final url = Uri.parse('$baseUrl/api/location/$userId/latest');
+      final url = Uri.parse('$_apiBase/api/location/$userId/latest');
       final resp = await http.get(url);
       if (resp.statusCode == 200) {
         final data = json.decode(resp.body);
@@ -88,12 +83,13 @@ class _CartPageState extends State<CartPage> {
   Future<Map<String, dynamic>?> _reverseGeocode(num lat, num lng) async {
     try {
       final uri = Uri.parse(
-          'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=$lat&lon=$lng&zoom=18&addressdetails=1');
+        'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
+      );
       final resp = await http.get(
         uri,
         headers: {
           'User-Agent': 'food_delivery_app/1.0 (+https://example.com)',
-          'Accept-Language': 'vi,en;q=0.8'
+          'Accept-Language': 'vi,en;q=0.8',
         },
       );
       if (resp.statusCode == 200) {
@@ -104,17 +100,37 @@ class _CartPageState extends State<CartPage> {
         if (address is Map) {
           final road = address['road'];
           final house = address['house_number'];
-          final ward = address['suburb'] ?? address['neighbourhood'] ?? address['quarter'] ?? address['hamlet'] ?? address['city_district'];
-          final district = address['district'] ?? address['county'] ?? address['state_district'];
-          final city = address['city'] ?? address['town'] ?? address['village'] ?? address['county'] ?? address['state'];
+          final ward =
+              address['suburb'] ??
+              address['neighbourhood'] ??
+              address['quarter'] ??
+              address['hamlet'] ??
+              address['city_district'];
+          final district =
+              address['district'] ??
+              address['county'] ??
+              address['state_district'];
+          final city =
+              address['city'] ??
+              address['town'] ??
+              address['village'] ??
+              address['county'] ??
+              address['state'];
           // Try to extract name and phone from address tags if available
-          final nameTag = address['name'] ?? address['contact_name'] ?? address['operator'];
-          final phoneTag = address['phone'] ?? address['contact:phone'] ?? address['contact_phone'] ?? address['telephone'];
+          final nameTag =
+              address['name'] ?? address['contact_name'] ?? address['operator'];
+          final phoneTag =
+              address['phone'] ??
+              address['contact:phone'] ??
+              address['contact_phone'] ??
+              address['telephone'];
 
           // build street string "house road"
           String? street;
-          if (road != null && house != null) street = '$house $road';
-          else street = road?.toString();
+          if (road != null && house != null)
+            street = '$house $road';
+          else
+            street = road?.toString();
 
           if (street != null) components['street'] = street;
           if (ward != null) components['ward'] = ward.toString();
@@ -128,15 +144,12 @@ class _CartPageState extends State<CartPage> {
             components['street'],
             components['ward'],
             components['district'],
-            components['city']
+            components['city'],
           ].whereType<String>().where((s) => s.trim().isNotEmpty).join(', ');
           return parts.isNotEmpty ? parts : null;
         }();
         if (display != null || components.isNotEmpty) {
-          return {
-            'display': display,
-            'components': components,
-          };
+          return {'display': display, 'components': components};
         }
       }
     } catch (_) {}
@@ -148,7 +161,10 @@ class _CartPageState extends State<CartPage> {
     super.initState();
     // Load addresses when page initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final addressProvider = Provider.of<AddressProvider>(context, listen: false);
+      final addressProvider = Provider.of<AddressProvider>(
+        context,
+        listen: false,
+      );
       addressProvider.loadAddresses('user123'); // Replace with actual user ID
       _loadLatestLocation();
       _loadUserProfileFromStorage();
@@ -159,7 +175,7 @@ class _CartPageState extends State<CartPage> {
     try {
       // Demo: fetch a profile from backend if userId/name not present
       if (_userId == null || _userName == null || _userPhone == null) {
-        final url = Uri.parse('${baseUrl}/api/auth/profile');
+        final url = Uri.parse('$_apiBase/api/auth/profile');
         final resp = await http.get(url);
         if (resp.statusCode == 200) {
           final data = json.decode(resp.body);
@@ -194,7 +210,11 @@ class _CartPageState extends State<CartPage> {
             shape: BoxShape.circle,
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -213,7 +233,7 @@ class _CartPageState extends State<CartPage> {
           if (cartProvider.isEmpty) {
             return _buildEmptyCart();
           }
-          
+
           return Column(
             children: [
               // Cart Items Section (Dark)
@@ -238,7 +258,9 @@ class _CartPageState extends State<CartPage> {
                           cartProvider.removeItem(item.id, item.size);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Đã xóa ${item.name} khỏi giỏ hàng'),
+                              content: Text(
+                                'Đã xóa ${item.name} khỏi giỏ hàng',
+                              ),
                               backgroundColor: Colors.red,
                               duration: const Duration(seconds: 2),
                             ),
@@ -281,10 +303,7 @@ class _CartPageState extends State<CartPage> {
             const SizedBox(height: 12),
             Text(
               'Hãy thêm món ăn yêu thích vào giỏ hàng',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[400],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[400]),
             ),
             const SizedBox(height: 32),
             Builder(
@@ -292,7 +311,10 @@ class _CartPageState extends State<CartPage> {
                 onPressed: () => Navigator.of(context).pop(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25),
                   ),
@@ -313,13 +335,14 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
-  Widget _buildCartSummary(CartProvider cartProvider, AddressProvider addressProvider) {
+  Widget _buildCartSummary(
+    CartProvider cartProvider,
+    AddressProvider addressProvider,
+  ) {
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xfff8f9fa),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-        ),
+        borderRadius: BorderRadius.only(topLeft: Radius.circular(30)),
       ),
       child: Column(
         children: [
@@ -348,13 +371,16 @@ class _CartPageState extends State<CartPage> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => EditAddressPage(
-                                userId: 'user123', // Replace with actual user ID
+                                userId:
+                                    'user123', // Replace with actual user ID
                                 initialStreet: _latestComponents?['street'],
                                 initialWard: _latestComponents?['ward'],
                                 initialDistrict: _latestComponents?['district'],
                                 initialCity: _latestComponents?['city'],
-                                initialFullName: _userName ?? _suggestedFullName,
-                                initialPhoneNumber: _userPhone ?? _suggestedPhoneNumber,
+                                initialFullName:
+                                    _userName ?? _suggestedFullName,
+                                initialPhoneNumber:
+                                    _userPhone ?? _suggestedPhoneNumber,
                               ),
                             ),
                           );
@@ -378,7 +404,10 @@ class _CartPageState extends State<CartPage> {
                 const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(12),
@@ -390,16 +419,13 @@ class _CartPageState extends State<CartPage> {
                             (_latestLatLng != null
                                 ? 'Vị trí hiện tại: $_latestLatLng'
                                 : '2118 Thornridge Cir. Syracuse, New York, New York')),
-                    style: TextStyle(
-                      color: Colors.grey[700],
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: Colors.grey[700], fontSize: 16),
                   ),
                 ),
               ],
             ),
           ),
-          
+
           // Total Section
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -429,7 +455,8 @@ class _CartPageState extends State<CartPage> {
                     Builder(
                       builder: (context) => TextButton(
                         onPressed: () {
-                          final addressText = addressProvider.defaultAddress?.fullAddress ??
+                          final addressText =
+                              addressProvider.defaultAddress?.fullAddress ??
                               (_latestAddress ??
                                   (_latestLatLng != null
                                       ? 'Vị trí hiện tại: $_latestLatLng'
@@ -437,9 +464,8 @@ class _CartPageState extends State<CartPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => BreakdownPage(
-                                deliveryAddress: addressText,
-                              ),
+                              builder: (context) =>
+                                  BreakdownPage(deliveryAddress: addressText),
                             ),
                           );
                         },
@@ -532,10 +558,7 @@ class _CartItemCard extends StatelessWidget {
               ),
               child: ClipOval(
                 child: item.image != null
-                    ? Image.asset(
-                        '${item.image}',
-                        fit: BoxFit.cover,
-                      )
+                    ? Image.asset('${item.image}', fit: BoxFit.cover)
                     : const Icon(
                         Icons.fastfood,
                         size: 40,
@@ -544,7 +567,7 @@ class _CartItemCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            
+
             // Product Details
             Expanded(
               child: Column(
@@ -591,14 +614,25 @@ class _CartItemCard extends StatelessWidget {
                             iconEnabledColor: Colors.white,
                             style: const TextStyle(color: Colors.white),
                             items: const [
-                              DropdownMenuItem(value: 'S', child: Text('S (10")')),
-                              DropdownMenuItem(value: 'M', child: Text('M (14")')),
-                              DropdownMenuItem(value: 'L', child: Text('L (16")')),
+                              DropdownMenuItem(
+                                value: 'S',
+                                child: Text('S (10")'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'M',
+                                child: Text('M (14")'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'L',
+                                child: Text('L (16")'),
+                              ),
                             ],
                             onChanged: (val) {
                               if (val == null || val == item.size) return;
-                              Provider.of<CartProvider>(context, listen: false)
-                                  .updateSize(item.id, item.size, val);
+                              Provider.of<CartProvider>(
+                                context,
+                                listen: false,
+                              ).updateSize(item.id, item.size, val);
                             },
                           ),
                         ),
@@ -694,11 +728,8 @@ class _QuantityButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
 
-  const _QuantityButton({
-    Key? key,
-    required this.icon,
-    required this.onTap,
-  }) : super(key: key);
+  const _QuantityButton({Key? key, required this.icon, required this.onTap})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -711,11 +742,7 @@ class _QuantityButton extends StatelessWidget {
           color: const Color(0xff4a4a4c),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Icon(
-          icon,
-          size: 16,
-          color: Colors.white,
-        ),
+        child: Icon(icon, size: 16, color: Colors.white),
       ),
     );
   }

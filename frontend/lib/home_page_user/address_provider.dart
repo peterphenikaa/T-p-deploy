@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'address_model.dart';
+import 'package:food_delivery_app/config/env.dart';
 
 class AddressProvider with ChangeNotifier {
   List<AddressModel> _addresses = [];
@@ -17,30 +18,31 @@ class AddressProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final baseUrl = 'http://localhost:3000';
       final response = await http.get(
-        Uri.parse('$baseUrl/api/addresses/$userId'),
+        Uri.parse('$API_BASE_URL/api/addresses/$userId'),
       );
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         _addresses = data.map((json) => AddressModel.fromJson(json)).toList();
-        
+
         // Find default address
         _defaultAddress = _addresses.firstWhere(
           (address) => address.isDefault,
-          orElse: () => _addresses.isNotEmpty ? _addresses.first : AddressModel(
-            id: '',
-            userId: userId,
-            fullName: '',
-            phoneNumber: '',
-            street: '2118 Thornridge Cir.',
-            ward: 'Syracuse',
-            district: 'New York',
-            city: 'New York',
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ),
+          orElse: () => _addresses.isNotEmpty
+              ? _addresses.first
+              : AddressModel(
+                  id: '',
+                  userId: userId,
+                  fullName: '',
+                  phoneNumber: '',
+                  street: '2118 Thornridge Cir.',
+                  ward: 'Syracuse',
+                  district: 'New York',
+                  city: 'New York',
+                  createdAt: DateTime.now(),
+                  updatedAt: DateTime.now(),
+                ),
         );
       } else {
         throw Exception('Failed to load addresses: ${response.statusCode}');
@@ -68,9 +70,8 @@ class AddressProvider with ChangeNotifier {
 
   Future<void> addAddress(AddressModel address) async {
     try {
-      final baseUrl = 'http://localhost:3000';
       final response = await http.post(
-        Uri.parse('$baseUrl/api/addresses'),
+        Uri.parse('$API_BASE_URL/api/addresses'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(address.toJson()),
       );
@@ -79,11 +80,11 @@ class AddressProvider with ChangeNotifier {
         final data = json.decode(response.body);
         final newAddress = AddressModel.fromJson(data);
         _addresses.add(newAddress);
-        
+
         if (newAddress.isDefault) {
           _setDefaultAddress(newAddress);
         }
-        
+
         notifyListeners();
       } else {
         throw Exception('Failed to add address: ${response.statusCode}');
@@ -96,9 +97,8 @@ class AddressProvider with ChangeNotifier {
 
   Future<void> updateAddress(AddressModel address) async {
     try {
-      final baseUrl = 'http://localhost:3000';
       final response = await http.put(
-        Uri.parse('$baseUrl/api/addresses/${address.id}'),
+        Uri.parse('$API_BASE_URL/api/addresses/${address.id}'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(address.toJson()),
       );
@@ -106,16 +106,16 @@ class AddressProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final updatedAddress = AddressModel.fromJson(data);
-        
+
         final index = _addresses.indexWhere((a) => a.id == address.id);
         if (index != -1) {
           _addresses[index] = updatedAddress;
         }
-        
+
         if (updatedAddress.isDefault) {
           _setDefaultAddress(updatedAddress);
         }
-        
+
         notifyListeners();
       } else {
         throw Exception('Failed to update address: ${response.statusCode}');
@@ -128,19 +128,18 @@ class AddressProvider with ChangeNotifier {
 
   Future<void> deleteAddress(String addressId) async {
     try {
-      final baseUrl = 'http://localhost:3000';
       final response = await http.delete(
-        Uri.parse('$baseUrl/api/addresses/$addressId'),
+        Uri.parse('$API_BASE_URL/api/addresses/$addressId'),
       );
 
       if (response.statusCode == 200) {
         _addresses.removeWhere((address) => address.id == addressId);
-        
+
         // If deleted address was default, set another as default
         if (_defaultAddress?.id == addressId) {
           _defaultAddress = _addresses.isNotEmpty ? _addresses.first : null;
         }
-        
+
         notifyListeners();
       } else {
         throw Exception('Failed to delete address: ${response.statusCode}');
@@ -153,26 +152,27 @@ class AddressProvider with ChangeNotifier {
 
   Future<void> setDefaultAddress(String addressId) async {
     try {
-      final baseUrl = 'http://localhost:3000';
       final response = await http.put(
-        Uri.parse('$baseUrl/api/addresses/$addressId/set-default'),
+        Uri.parse('$API_BASE_URL/api/addresses/$addressId/set-default'),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final updatedAddress = AddressModel.fromJson(data);
-        
+
         // Update all addresses
         for (int i = 0; i < _addresses.length; i++) {
           _addresses[i] = _addresses[i].copyWith(
             isDefault: _addresses[i].id == addressId,
           );
         }
-        
+
         _setDefaultAddress(updatedAddress);
         notifyListeners();
       } else {
-        throw Exception('Failed to set default address: ${response.statusCode}');
+        throw Exception(
+          'Failed to set default address: ${response.statusCode}',
+        );
       }
     } catch (e) {
       print('Error setting default address: $e');

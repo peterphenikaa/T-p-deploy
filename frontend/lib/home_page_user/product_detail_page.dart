@@ -9,6 +9,7 @@ import 'recently_viewed_widget.dart';
 import 'recent_provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:food_delivery_app/config/env.dart';
 
 class Review {
   final String user;
@@ -53,7 +54,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   String userNote = '';
   final TextEditingController noteController = TextEditingController();
-  
+
   // Restaurant info
   Map<String, dynamic>? restaurantInfo;
   bool restaurantLoading = false;
@@ -104,12 +105,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final String productId = rawId is Map
         ? (rawId['_id'] ?? rawId['\$oid'] ?? rawId.toString())
         : (rawId?.toString() ?? '');
-    final String baseUrl = kIsWeb
-        ? 'http://localhost:3000'
-        : (defaultTargetPlatform == TargetPlatform.android
-        ? 'http://10.0.2.2:3000'
-        : 'http://localhost:3000');
-    final url = Uri.parse('$baseUrl/api/foods/$productId/reviews');
+    final url = Uri.parse('$API_BASE_URL/api/foods/$productId/reviews');
     try {
       print('[fetchReviews] GET $url');
       final resp = await http.get(url);
@@ -126,53 +122,60 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Future<void> fetchRestaurantInfo() async {
     setState(() => restaurantLoading = true);
-    final String baseUrl = kIsWeb
-        ? 'http://localhost:3000'
-        : (defaultTargetPlatform == TargetPlatform.android
-        ? 'http://10.0.2.2:3000'
-        : 'http://localhost:3000');
-    
+
     try {
       // First get the food details to get restaurantId
       final rawId = widget.product['_id'] ?? widget.product['id'];
       final String productId = rawId is Map
           ? (rawId['_id'] ?? rawId['\$oid'] ?? rawId.toString())
           : (rawId?.toString() ?? '');
-      
+
       print('[fetchRestaurantInfo] Product ID: $productId');
       print('[fetchRestaurantInfo] Raw product data: ${widget.product}');
-      
-      final foodUrl = Uri.parse('$baseUrl/api/foods/$productId');
+
+      final foodUrl = Uri.parse('$API_BASE_URL/api/foods/$productId');
       print('[fetchRestaurantInfo] Food URL: $foodUrl');
-      final foodResp = await http.get(foodUrl).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          throw Exception('Food API timeout');
-        },
+      final foodResp = await http
+          .get(foodUrl)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              throw Exception('Food API timeout');
+            },
+          );
+
+      print(
+        '[fetchRestaurantInfo] Food response status: ${foodResp.statusCode}',
       );
-      
-      print('[fetchRestaurantInfo] Food response status: ${foodResp.statusCode}');
       print('[fetchRestaurantInfo] Food response body: ${foodResp.body}');
-      
+
       if (foodResp.statusCode == 200) {
         final foodData = json.decode(foodResp.body);
         final restaurantId = foodData['restaurantId'];
         print('[fetchRestaurantInfo] Restaurant ID: $restaurantId');
-        
+
         if (restaurantId != null) {
           // Get restaurant details
-          final restaurantUrl = Uri.parse('$baseUrl/api/restaurants/$restaurantId');
-          print('[fetchRestaurantInfo] Restaurant URL: $restaurantUrl');
-          final restaurantResp = await http.get(restaurantUrl).timeout(
-            const Duration(seconds: 10),
-            onTimeout: () {
-              throw Exception('Restaurant API timeout');
-            },
+          final restaurantUrl = Uri.parse(
+            '$API_BASE_URL/api/restaurants/$restaurantId',
           );
-          
-          print('[fetchRestaurantInfo] Restaurant response status: ${restaurantResp.statusCode}');
-          print('[fetchRestaurantInfo] Restaurant response body: ${restaurantResp.body}');
-          
+          print('[fetchRestaurantInfo] Restaurant URL: $restaurantUrl');
+          final restaurantResp = await http
+              .get(restaurantUrl)
+              .timeout(
+                const Duration(seconds: 10),
+                onTimeout: () {
+                  throw Exception('Restaurant API timeout');
+                },
+              );
+
+          print(
+            '[fetchRestaurantInfo] Restaurant response status: ${restaurantResp.statusCode}',
+          );
+          print(
+            '[fetchRestaurantInfo] Restaurant response body: ${restaurantResp.body}',
+          );
+
           if (restaurantResp.statusCode == 200) {
             final restaurantData = json.decode(restaurantResp.body);
             print('[fetchRestaurantInfo] Restaurant data: $restaurantData');
@@ -180,18 +183,22 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               restaurantInfo = restaurantData;
             });
           } else {
-            print('[fetchRestaurantInfo] Failed to get restaurant: ${restaurantResp.statusCode}');
+            print(
+              '[fetchRestaurantInfo] Failed to get restaurant: ${restaurantResp.statusCode}',
+            );
           }
         } else {
           print('[fetchRestaurantInfo] No restaurantId found in food data');
         }
       } else {
-        print('[fetchRestaurantInfo] Failed to get food: ${foodResp.statusCode}');
+        print(
+          '[fetchRestaurantInfo] Failed to get food: ${foodResp.statusCode}',
+        );
       }
     } catch (e) {
       print('[fetchRestaurantInfo] Error: $e');
     }
-    
+
     setState(() => restaurantLoading = false);
   }
 
@@ -200,12 +207,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final String productId = rawId is Map
         ? (rawId['_id'] ?? rawId['\$oid'] ?? rawId.toString())
         : (rawId?.toString() ?? '');
-    final String baseUrl = kIsWeb
-        ? 'http://localhost:3000'
-        : (defaultTargetPlatform == TargetPlatform.android
-        ? 'http://10.0.2.2:3000'
-        : 'http://localhost:3000');
-    final url = Uri.parse('$baseUrl/api/foods/$productId/reviews');
+    final url = Uri.parse('$API_BASE_URL/api/foods/$productId/reviews');
     final review = Review(user: "Bạn", rating: rating, comment: comment);
     try {
       print('[postReview] POST $url body=${json.encode(review.toJson())}');
@@ -368,15 +370,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   alignment: Alignment.center,
                   child: item['image'] != null
                       ? Image.asset(
-                    '${item['image']}',
-                    fit: BoxFit.contain,
-                    height: 150,
-                  )
+                          '${item['image']}',
+                          fit: BoxFit.contain,
+                          height: 150,
+                        )
                       : const Icon(
-                    Icons.local_pizza,
-                    size: 96,
-                    color: Colors.orange,
-                  ),
+                          Icons.local_pizza,
+                          size: 96,
+                          color: Colors.orange,
+                        ),
                 ),
               ),
             ),
@@ -501,27 +503,45 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Builder(builder: (context) {
-                      final List<dynamic> raw = (item['ingredients'] as List?) ?? const [];
-                      final List<String> ingredients = raw.map((e) => e.toString()).toList();
-                      if (ingredients.isEmpty) {
-                        return const Text('Chưa có nguyên liệu', style: TextStyle(color: Colors.grey));
-                      }
-                      return Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: ingredients
-                            .map((ing) => Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    Builder(
+                      builder: (context) {
+                        final List<dynamic> raw =
+                            (item['ingredients'] as List?) ?? const [];
+                        final List<String> ingredients = raw
+                            .map((e) => e.toString())
+                            .toList();
+                        if (ingredients.isEmpty) {
+                          return const Text(
+                            'Chưa có nguyên liệu',
+                            style: TextStyle(color: Colors.grey),
+                          );
+                        }
+                        return Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: ingredients
+                              .map(
+                                (ing) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFFFF2E6),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
-                                  child: Text(ing, style: const TextStyle(color: Colors.deepOrange)),
-                                ))
-                            .toList(),
-                      );
-                    }),
+                                  child: Text(
+                                    ing,
+                                    style: const TextStyle(
+                                      color: Colors.deepOrange,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 18),
 
                     Padding(
@@ -532,23 +552,29 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           Text(
                             'Ghi chú cho nhà hàng',
                             style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.orange[800]),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.orange[800],
+                            ),
                           ),
                           const SizedBox(height: 5),
                           TextField(
                             controller: noteController,
-                            onChanged: (value) => setState(() => userNote = value),
+                            onChanged: (value) =>
+                                setState(() => userNote = value),
                             minLines: 1,
                             maxLines: 2,
                             decoration: InputDecoration(
-                              hintText: 'Nhập ghi chú (ví dụ: không hành, ít cay...)',
+                              hintText:
+                                  'Nhập ghi chú (ví dụ: không hành, ít cay...)',
                               filled: true,
                               fillColor: Colors.white,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.orange, width: 1),
+                                borderSide: BorderSide(
+                                  color: Colors.orange,
+                                  width: 1,
+                                ),
                               ),
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 14,
@@ -629,10 +655,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           final filtered = selectedReviewFilter == 0
                               ? reviews
                               : reviews
-                              .where(
-                                (r) => r.rating == selectedReviewFilter,
-                          )
-                              .toList();
+                                    .where(
+                                      (r) => r.rating == selectedReviewFilter,
+                                    )
+                                    .toList();
                           if (filtered.isEmpty)
                             return Text(
                               "Chưa có đánh giá.",
@@ -642,42 +668,44 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             children: filtered
                                 .map(
                                   (rv) => ListTile(
-                                leading: CircleAvatar(
-                                  radius: 20,
-                                  backgroundColor: Colors.grey[200],
-                                  backgroundImage: AssetImage('homepageUser/user_icon.jpg'),
-                                ),
-                                title: Row(
-                                  children: [
-                                    ...List.generate(
-                                      rv.rating,
+                                    leading: CircleAvatar(
+                                      radius: 20,
+                                      backgroundColor: Colors.grey[200],
+                                      backgroundImage: AssetImage(
+                                        'homepageUser/user_icon.jpg',
+                                      ),
+                                    ),
+                                    title: Row(
+                                      children: [
+                                        ...List.generate(
+                                          rv.rating,
                                           (i) => Icon(
-                                        Icons.star,
-                                        size: 16,
-                                        color: Colors.orange,
-                                      ),
-                                    ),
-                                    ...List.generate(
-                                      5 - rv.rating,
+                                            Icons.star,
+                                            size: 16,
+                                            color: Colors.orange,
+                                          ),
+                                        ),
+                                        ...List.generate(
+                                          5 - rv.rating,
                                           (i) => Icon(
-                                        Icons.star_border,
-                                        size: 16,
-                                        color: Colors.orange,
-                                      ),
+                                            Icons.star_border,
+                                            size: 16,
+                                            color: Colors.orange,
+                                          ),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          rv.user,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      rv.user,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                subtitle: Text(rv.comment),
-                              ),
-                            )
+                                    subtitle: Text(rv.comment),
+                                  ),
+                                )
                                 .toList(),
                           );
                         },
@@ -721,7 +749,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   _QtyButton(
                     icon: Icons.remove,
                     onTap: () => setState(
-                          () => quantity = quantity > 1 ? quantity - 1 : 1,
+                      () => quantity = quantity > 1 ? quantity - 1 : 1,
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -810,7 +838,7 @@ class _ReviewFormState extends State<_ReviewForm> {
             Row(
               children: List.generate(
                 5,
-                    (i) => IconButton(
+                (i) => IconButton(
                   icon: Icon(
                     i < _rating ? Icons.star : Icons.star_border,
                     color: Colors.orange,
@@ -832,28 +860,28 @@ class _ReviewFormState extends State<_ReviewForm> {
                   onPressed: sending
                       ? null
                       : () async {
-                    setState(() => sending = true);
-                    try {
-                      await widget.onSubmit(
-                        _rating.toInt(),
-                        _controller.text,
-                      );
-                      setState(() {
-                        _controller.clear();
-                        _rating = 5;
-                      });
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Gửi đánh giá gặp lỗi. Vui lòng thử lại.',
-                          ),
-                        ),
-                      );
-                    } finally {
-                      setState(() => sending = false);
-                    }
-                  },
+                          setState(() => sending = true);
+                          try {
+                            await widget.onSubmit(
+                              _rating.toInt(),
+                              _controller.text,
+                            );
+                            setState(() {
+                              _controller.clear();
+                              _rating = 5;
+                            });
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Gửi đánh giá gặp lỗi. Vui lòng thử lại.',
+                                ),
+                              ),
+                            );
+                          } finally {
+                            setState(() => sending = false);
+                          }
+                        },
                   child: Text("Gửi"),
                 ),
               ],
@@ -920,7 +948,7 @@ class _QtyButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   const _QtyButton({Key? key, required this.icon, required this.onTap})
-      : super(key: key);
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {

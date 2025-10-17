@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
+import 'package:food_delivery_app/config/env.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
@@ -8,7 +10,8 @@ import '../auth/auth_provider.dart';
 
 class ShipperOrderDetailPage extends StatefulWidget {
   final String orderId;
-  const ShipperOrderDetailPage({Key? key, required this.orderId}) : super(key: key);
+  const ShipperOrderDetailPage({Key? key, required this.orderId})
+    : super(key: key);
 
   @override
   State<ShipperOrderDetailPage> createState() => _ShipperOrderDetailPageState();
@@ -21,10 +24,8 @@ class _ShipperOrderDetailPageState extends State<ShipperOrderDetailPage> {
   Timer? _pollTimer;
   DateTime? _lastMessageAt;
 
-  String get baseUrl {
-    if (kIsWeb) return 'http://localhost:3000';
-    return defaultTargetPlatform == TargetPlatform.android ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
-  }
+  // Use centralized API base URL
+  String get _apiBase => API_BASE_URL;
 
   @override
   void initState() {
@@ -46,7 +47,7 @@ class _ShipperOrderDetailPageState extends State<ShipperOrderDetailPage> {
 
   Future<void> _loadOrder() async {
     try {
-      final url = Uri.parse('$baseUrl/api/orders/${widget.orderId}');
+      final url = Uri.parse('$_apiBase/api/orders/${widget.orderId}');
       final res = await http.get(url);
       if (res.statusCode == 200) {
         setState(() {
@@ -59,15 +60,21 @@ class _ShipperOrderDetailPageState extends State<ShipperOrderDetailPage> {
   Future<void> _loadMessages() async {
     try {
       final since = _lastMessageAt?.toUtc().toIso8601String();
-      final url = Uri.parse('$baseUrl/api/orders/${widget.orderId}/messages${since != null ? '?since=$since' : ''}');
+      final url = Uri.parse(
+        '$_apiBase/api/orders/${widget.orderId}/messages${since != null ? '?since=$since' : ''}',
+      );
       final res = await http.get(url);
       if (res.statusCode == 200) {
         final List data = json.decode(res.body);
         if (data.isNotEmpty) {
-          final list = data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          final list = data
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
           setState(() {
             messages.addAll(list);
-            _lastMessageAt = DateTime.tryParse(list.last['createdAt']?.toString() ?? '') ?? _lastMessageAt;
+            _lastMessageAt =
+                DateTime.tryParse(list.last['createdAt']?.toString() ?? '') ??
+                _lastMessageAt;
           });
         }
       }
@@ -79,7 +86,7 @@ class _ShipperOrderDetailPageState extends State<ShipperOrderDetailPage> {
     if (content.isEmpty) return;
     final auth = Provider.of<AuthProvider>(context, listen: false);
     try {
-      final url = Uri.parse('$baseUrl/api/orders/${widget.orderId}/messages');
+      final url = Uri.parse('$_apiBase/api/orders/${widget.orderId}/messages');
       final res = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -98,7 +105,7 @@ class _ShipperOrderDetailPageState extends State<ShipperOrderDetailPage> {
 
   Future<void> _updateStatus(String status) async {
     try {
-      final url = Uri.parse('$baseUrl/api/orders/${widget.orderId}/status');
+      final url = Uri.parse('$_apiBase/api/orders/${widget.orderId}/status');
       final res = await http.put(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -122,7 +129,10 @@ class _ShipperOrderDetailPageState extends State<ShipperOrderDetailPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Chi tiết đơn', style: TextStyle(color: Colors.black)),
+        title: const Text(
+          'Chi tiết đơn',
+          style: TextStyle(color: Colors.black),
+        ),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
@@ -140,10 +150,7 @@ class _ShipperOrderDetailPageState extends State<ShipperOrderDetailPage> {
             title: Text(name),
             subtitle: Text(phone),
           ),
-          ListTile(
-            leading: const Icon(Icons.location_on),
-            title: Text(addr),
-          ),
+          ListTile(leading: const Icon(Icons.location_on), title: Text(addr)),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: const BoxDecoration(color: Color(0xFFF8F9FA)),
@@ -161,11 +168,19 @@ class _ShipperOrderDetailPageState extends State<ShipperOrderDetailPage> {
             child: ListView(
               padding: const EdgeInsets.all(12),
               children: [
-                const Text('Món:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Món:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
-                ...items.map((e) => Text('- ${e['name']} x ${e['quantity']}')).toList(),
+                ...items
+                    .map((e) => Text('- ${e['name']} x ${e['quantity']}'))
+                    .toList(),
                 const Divider(),
-                const Text('Chat với khách', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Chat với khách',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 Expanded(child: SizedBox()),
               ],
@@ -180,7 +195,7 @@ class _ShipperOrderDetailPageState extends State<ShipperOrderDetailPage> {
                 _buildInput(),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -188,13 +203,16 @@ class _ShipperOrderDetailPageState extends State<ShipperOrderDetailPage> {
 
   Future<void> _cancelOrder() async {
     try {
-      final url = Uri.parse('$baseUrl/api/orders/${widget.orderId}/cancel');
+      final url = Uri.parse('$_apiBase/api/orders/${widget.orderId}/cancel');
       final res = await http.put(url);
       if (res.statusCode == 200) {
         _loadOrder();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã hủy đơn'), backgroundColor: Colors.red),
+          const SnackBar(
+            content: Text('Đã hủy đơn'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (_) {}
@@ -247,7 +265,10 @@ class _ShipperOrderDetailPageState extends State<ShipperOrderDetailPage> {
                   hintText: 'Nhắn tin với khách...',
                   filled: true,
                   fillColor: Color(0xFFF3F7FB),
-                  border: OutlineInputBorder(borderSide: BorderSide.none, borderRadius: BorderRadius.all(Radius.circular(12))),
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide.none,
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
                 ),
               ),
             ),
@@ -265,15 +286,3 @@ class _ShipperOrderDetailPageState extends State<ShipperOrderDetailPage> {
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-

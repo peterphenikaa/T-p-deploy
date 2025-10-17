@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'package:provider/provider.dart';
 import '../auth/auth_provider.dart';
 import 'shipper_order_detail_page.dart';
+import 'package:food_delivery_app/config/env.dart';
 
 class ShipperHomePage extends StatefulWidget {
   const ShipperHomePage({Key? key}) : super(key: key);
@@ -23,14 +25,8 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
   String? _shipperId;
   String? _shipperName;
 
-  String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:3000';
-    }
-    return defaultTargetPlatform == TargetPlatform.android
-        ? 'http://10.0.2.2:3000'
-        : 'http://localhost:3000';
-  }
+  // Use centralized API base URL constant
+  String get _apiBase => API_BASE_URL;
 
   @override
   void initState() {
@@ -67,7 +63,7 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
   Future<void> _loadOrders({bool showNotification = false}) async {
     try {
       // Lấy các đơn nhà hàng đã hoàn thành món và sẵn sàng cho shipper: ASSIGNED
-      final url = Uri.parse('$baseUrl/api/orders?status=ASSIGNED');
+      final url = Uri.parse('$_apiBase/api/orders?status=ASSIGNED');
       print('🔍 Shipper fetching orders: $url');
       final response = await http.get(url);
 
@@ -76,15 +72,15 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
       if (response.statusCode == 200) {
         final List data = json.decode(response.body);
         final newPending = List<Map<String, dynamic>>.from(data);
-        
+
         print('📦 Found ${newPending.length} pending orders');
-        
+
         // Check if new order arrived
         if (showNotification && newPending.length > _lastPendingCount) {
           print('🔔 New order detected!');
           _showNewOrderNotification();
         }
-        
+
         setState(() {
           pendingOrders = newPending;
           _lastPendingCount = newPending.length;
@@ -103,7 +99,8 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
     try {
       final sid = _shipperId;
       // Require a valid Mongo ObjectId (24 hex chars) to avoid cast errors on backend
-      final isValidObjectId = sid != null && RegExp(r'^[a-fA-F0-9]{24}$').hasMatch(sid);
+      final isValidObjectId =
+          sid != null && RegExp(r'^[a-fA-F0-9]{24}$').hasMatch(sid);
       if (!isValidObjectId) {
         setState(() {
           myOrders = [];
@@ -111,7 +108,7 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
         return;
       }
 
-      final url = Uri.parse('$baseUrl/api/orders?shipperId=$sid');
+      final url = Uri.parse('$_apiBase/api/orders?shipperId=$sid');
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final List data = json.decode(response.body);
@@ -137,7 +134,10 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
           children: const [
             Icon(Icons.notifications_active, color: Colors.white),
             SizedBox(width: 12),
-            Text('🔔 Đơn hàng mới!', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              '🔔 Đơn hàng mới!',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         backgroundColor: Colors.orange,
@@ -153,25 +153,25 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
       final sid = _shipperId;
       final sname = _shipperName ?? 'Shipper';
 
-      final isValidObjectId = sid != null && RegExp(r'^[a-fA-F0-9]{24}$').hasMatch(sid);
+      final isValidObjectId =
+          sid != null && RegExp(r'^[a-fA-F0-9]{24}$').hasMatch(sid);
       if (!isValidObjectId) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Không xác định được Shipper. Hãy đăng nhập tài khoản shipper.'),
+            content: Text(
+              'Không xác định được Shipper. Hãy đăng nhập tài khoản shipper.',
+            ),
             backgroundColor: Colors.red,
           ),
         );
         return;
       }
 
-      final url = Uri.parse('$baseUrl/api/orders/$orderId/assign');
+      final url = Uri.parse('$_apiBase/api/orders/$orderId/assign');
       final response = await http.put(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'shipperId': sid,
-          'shipperName': sname,
-        }),
+        body: json.encode({'shipperId': sid, 'shipperName': sname}),
       );
 
       if (response.statusCode == 200) {
@@ -209,7 +209,7 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
 
   Future<void> _cancelOrder(String orderId) async {
     try {
-      final url = Uri.parse('$baseUrl/api/orders/$orderId/cancel');
+      final url = Uri.parse('$_apiBase/api/orders/$orderId/cancel');
       final response = await http.put(url);
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -264,18 +264,31 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), // Thêm padding bottom để tránh che khuất FAB
+                    padding: const EdgeInsets.fromLTRB(
+                      16,
+                      16,
+                      16,
+                      100,
+                    ), // Thêm padding bottom để tránh che khuất FAB
                     children: [
                       _buildStatsCards(),
                       const SizedBox(height: 24),
-                      _buildSectionHeader('🔔 Đơn hàng chờ nhận', pendingOrders.length),
+                      _buildSectionHeader(
+                        '🔔 Đơn hàng chờ nhận',
+                        pendingOrders.length,
+                      ),
                       const SizedBox(height: 12),
                       if (pendingOrders.isEmpty)
                         _buildEmptyState('Chưa có đơn hàng mới')
                       else
-                        ...pendingOrders.map((order) => _buildPendingOrderCard(order)),
+                        ...pendingOrders.map(
+                          (order) => _buildPendingOrderCard(order),
+                        ),
                       const SizedBox(height: 24),
-                      _buildSectionHeader('📦 Đơn hàng của tôi', myOrders.length),
+                      _buildSectionHeader(
+                        '📦 Đơn hàng của tôi',
+                        myOrders.length,
+                      ),
                       const SizedBox(height: 12),
                       if (myOrders.isEmpty)
                         _buildEmptyState('Chưa có đơn hàng nào')
@@ -284,7 +297,7 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
                     ],
                   ),
           ),
-          
+
           // Icon đăng xuất tròn ở góc dưới bên phải cho shipper
           Positioned(
             bottom: 20,
@@ -303,11 +316,7 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
               child: FloatingActionButton(
                 onPressed: () => _showLogoutDialog(context),
                 backgroundColor: Colors.blue[600],
-                child: const Icon(
-                  Icons.logout,
-                  color: Colors.white,
-                  size: 24,
-                ),
+                child: const Icon(Icons.logout, color: Colors.white, size: 24),
                 elevation: 0,
                 mini: false,
               ),
@@ -342,7 +351,12 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, Color color, IconData icon) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    Color color,
+    IconData icon,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -479,7 +493,9 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(14),
+              ),
             ),
             child: Row(
               children: [
@@ -517,7 +533,10 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.orange,
                     borderRadius: BorderRadius.circular(20),
@@ -525,7 +544,11 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.access_time, color: Colors.white, size: 14),
+                      const Icon(
+                        Icons.access_time,
+                        color: Colors.white,
+                        size: 14,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         eta,
@@ -570,13 +593,14 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
                     const SizedBox(width: 6),
                     Text(
                       '$itemCount món',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[700],
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                     ),
                     const SizedBox(width: 16),
-                    Icon(Icons.attach_money, color: Colors.green[600], size: 16),
+                    Icon(
+                      Icons.attach_money,
+                      color: Colors.green[600],
+                      size: 16,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '₫${total.toString()}',
@@ -671,60 +695,67 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
           );
         },
         child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.navigation, color: Colors.blue, size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    orderId,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    address,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                status,
-                style: const TextStyle(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.navigation,
                   color: Colors.blue,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11,
+                  size: 24,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      orderId,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      address,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  status,
+                  style: const TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   void _showLogoutDialog(BuildContext context) {
@@ -733,7 +764,9 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Xác nhận đăng xuất'),
-          content: const Text('Bạn có chắc chắn muốn đăng xuất khỏi tài khoản shipper không?'),
+          content: const Text(
+            'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản shipper không?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -758,17 +791,13 @@ class _ShipperHomePageState extends State<ShipperHomePage> {
   void _logout(BuildContext context) {
     // Xóa thông tin user khỏi AuthProvider
     Provider.of<AuthProvider>(context, listen: false).clear();
-    
+
     // Hủy timer polling
     _pollTimer?.cancel();
-    
+
     // Chuyển về trang login
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/login',
-      (route) => false,
-    );
-    
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+
     // Hiển thị thông báo
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:food_delivery_app/config/env.dart';
 
 import '../auth/auth_provider.dart';
 
@@ -23,10 +25,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
   Timer? _pollTimer;
   DateTime? _lastMessageAt;
 
-  String get baseUrl {
-    if (kIsWeb) return 'http://localhost:3000';
-    return defaultTargetPlatform == TargetPlatform.android ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
-  }
+  String get _apiBase => API_BASE_URL;
 
   @override
   void initState() {
@@ -48,7 +47,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
 
   Future<void> _loadOrder() async {
     try {
-      final url = Uri.parse('$baseUrl/api/orders/${widget.orderId}');
+      final url = Uri.parse('$_apiBase/api/orders/${widget.orderId}');
       final res = await http.get(url);
       if (res.statusCode == 200) {
         setState(() {
@@ -61,15 +60,21 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
   Future<void> _loadMessages() async {
     try {
       final since = _lastMessageAt?.toUtc().toIso8601String();
-      final url = Uri.parse('$baseUrl/api/orders/${widget.orderId}/messages${since != null ? '?since=$since' : ''}');
+      final url = Uri.parse(
+        '$_apiBase/api/orders/${widget.orderId}/messages${since != null ? '?since=$since' : ''}',
+      );
       final res = await http.get(url);
       if (res.statusCode == 200) {
         final List data = json.decode(res.body);
         if (data.isNotEmpty) {
-          final list = data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          final list = data
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
           setState(() {
             messages.addAll(list);
-            _lastMessageAt = DateTime.tryParse(list.last['createdAt']?.toString() ?? '') ?? _lastMessageAt;
+            _lastMessageAt =
+                DateTime.tryParse(list.last['createdAt']?.toString() ?? '') ??
+                _lastMessageAt;
           });
         }
       }
@@ -81,7 +86,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
     if (content.isEmpty) return;
     final auth = Provider.of<AuthProvider>(context, listen: false);
     try {
-      final url = Uri.parse('$baseUrl/api/orders/${widget.orderId}/messages');
+      final url = Uri.parse('$_apiBase/api/orders/${widget.orderId}/messages');
       final res = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -104,12 +109,18 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.black,
+          ),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Theo dõi đơn hàng', style: TextStyle(color: Colors.black)),
+        title: const Text(
+          'Theo dõi đơn hàng',
+          style: TextStyle(color: Colors.black),
+        ),
         centerTitle: true,
         actions: [
           if (status != 'DELIVERED' && status != 'CANCELLED')
@@ -132,12 +143,18 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
                 _buildInput(),
                 const SizedBox(height: 8),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: _finishAndBackToShopping,
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(vertical: 14)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
                       child: const Text('ĐÃ NHẬN HÀNG THÀNH CÔNG'),
                     ),
                   ),
@@ -152,13 +169,16 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
 
   Future<void> _cancelOrder() async {
     try {
-      final url = Uri.parse('$baseUrl/api/orders/${widget.orderId}/cancel');
+      final url = Uri.parse('$_apiBase/api/orders/${widget.orderId}/cancel');
       final res = await http.put(url);
       if (res.statusCode == 200) {
         await _loadOrder();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã hủy đơn hàng'), backgroundColor: Colors.red),
+          const SnackBar(
+            content: Text('Đã hủy đơn hàng'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (_) {}
@@ -169,7 +189,13 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
   }
 
   Widget _buildStatusTimeline(String status) {
-    final steps = ['PENDING', 'ASSIGNED', 'PICKED_UP', 'DELIVERING', 'DELIVERED'];
+    final steps = [
+      'PENDING',
+      'ASSIGNED',
+      'PICKED_UP',
+      'DELIVERING',
+      'DELIVERED',
+    ];
     final currentIndex = steps.indexOf(status);
     return Container(
       padding: const EdgeInsets.all(16),
@@ -187,7 +213,10 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
                 const SizedBox(height: 6),
                 Text(
                   s,
-                  style: TextStyle(fontSize: 11, color: done ? Colors.green[700] : Colors.grey[600]),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: done ? Colors.green[700] : Colors.grey[600],
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -235,7 +264,10 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
                   hintText: 'Nhắn tin với shipper...',
                   filled: true,
                   fillColor: Color(0xFFF3F7FB),
-                  border: OutlineInputBorder(borderSide: BorderSide.none, borderRadius: BorderRadius.all(Radius.circular(12))),
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide.none,
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
                 ),
               ),
             ),
@@ -253,5 +285,3 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
     );
   }
 }
-
-

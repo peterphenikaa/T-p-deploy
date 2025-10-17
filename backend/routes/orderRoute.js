@@ -79,10 +79,11 @@ router.post('/', async (req, res) => {
 // GET /api/orders - Get all orders (with optional status filter)
 router.get('/', async (req, res) => {
   try {
-    const { status, shipperId, restaurantId } = req.query;
+    const { status, shipperId, restaurantId, userId } = req.query;
     const baseFilter = {};
     if (status) baseFilter.status = status;
     if (shipperId) baseFilter.shipperId = shipperId;
+    if (userId) baseFilter.userId = userId;
 
     // If restaurantId is provided, orders collection doesn't store restaurantId directly.
     // We need to fetch and filter by items' food.restaurantId similar to other endpoints.

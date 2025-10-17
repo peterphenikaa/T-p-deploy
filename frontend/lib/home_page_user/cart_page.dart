@@ -53,15 +53,17 @@ class _CartPageState extends State<CartPage> {
           _latestLatLng = (lat != null && lng != null) ? '$lat, $lng' : null;
         });
         if (lat != null && lng != null) {
-          final result = await _reverseGeocode(lat, lng);
-          if (result != null) {
-            setState(() {
-              _latestAddress = result['display'] as String?;
-              final c = result['components'];
-              if (c is Map<String, String>) {
-                _latestComponents = c;
-              }
-            });
+          if (!DISABLE_REVERSE_GEOCODE_IN_PROD) {
+            final result = await _reverseGeocode(lat, lng);
+            if (result != null) {
+              setState(() {
+                _latestAddress = result['display'] as String?;
+                final c = result['components'];
+                if (c is Map<String, String>) {
+                  _latestComponents = c;
+                }
+              });
+            }
           }
         }
       } else {

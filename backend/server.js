@@ -43,6 +43,30 @@ app.use(
 
 app.use(express.json());
 
+// Debug & safety middleware: log incoming requests and ensure CORS headers
+app.use((req, res, next) => {
+  try {
+    const now = new Date().toISOString();
+    const origin = req.headers.origin || req.headers.host || '-';
+    console.log(`[REQ] ${now} ${req.method} ${req.originalUrl} Origin:${origin} Host:${req.headers.host}`);
+    // Ensure common CORS headers are present on all responses (defensive)
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'false');
+  } catch (e) {
+    console.error('[REQ-MW] log error', e);
+  }
+  // quick respond to OPTIONS preflight
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString() });
+});
+
 app.use("/api/foods", foodRoute);
 app.use("/api/auth", loginRoute);
 app.use("/api/location", locationRoute);

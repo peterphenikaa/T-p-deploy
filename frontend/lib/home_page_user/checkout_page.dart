@@ -99,11 +99,14 @@ class CheckoutPage extends StatelessWidget {
           try {
             final auth = Provider.of<AuthProvider>(context, listen: false);
             final userId = auth.userId ?? 'guest';
-            final q = Uri.parse('$_apiBase/api/orders')
-                .replace(queryParameters: userId != 'guest' ? {'userId': userId} : null);
+            final q = Uri.parse('$_apiBase/api/orders').replace(
+              queryParameters: userId != 'guest' ? {'userId': userId} : null,
+            );
 
             final listRes = await http.get(q);
-            if (listRes.statusCode >= 200 && listRes.statusCode < 300 && listRes.body.isNotEmpty) {
+            if (listRes.statusCode >= 200 &&
+                listRes.statusCode < 300 &&
+                listRes.body.isNotEmpty) {
               final listData = json.decode(listRes.body);
               if (listData is List && listData.isNotEmpty) {
                 // find most recent order that matches total and deliveryAddress
@@ -113,11 +116,15 @@ class CheckoutPage extends StatelessWidget {
                     if (o is Map) {
                       final oTotal = o['total'];
                       final oAddr = o['deliveryAddress'];
-                      final oCreated = o['createdAt'] != null ? DateTime.parse(o['createdAt']) : null;
+                      final oCreated = o['createdAt'] != null
+                          ? DateTime.parse(o['createdAt'])
+                          : null;
                       if (oTotal == total && oAddr == deliveryAddress) {
                         // prefer recent ones
-                        if (oCreated == null || now.difference(oCreated).inMinutes < 5) {
-                          orderId = o['orderId']?.toString() ?? o['_id']?.toString();
+                        if (oCreated == null ||
+                            now.difference(oCreated).inMinutes < 5) {
+                          orderId =
+                              o['orderId']?.toString() ?? o['_id']?.toString();
                           break;
                         }
                       }
@@ -150,10 +157,14 @@ class CheckoutPage extends StatelessWidget {
         }
 
         // If we reach here we had a 2xx but couldn't determine orderId
-        print('⚠️ Order created but orderId not returned by server. Response: ${response.body}');
+        print(
+          '⚠️ Order created but orderId not returned by server. Response: ${response.body}',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đơn hàng được gửi nhưng hệ thống chưa nhận mã. Vui lòng kiểm tra trang Theo dõi đơn.'),
+            content: Text(
+              'Đơn hàng được gửi nhưng hệ thống chưa nhận mã. Vui lòng kiểm tra trang Theo dõi đơn.',
+            ),
             backgroundColor: Colors.orange,
           ),
         );
@@ -161,7 +172,12 @@ class CheckoutPage extends StatelessWidget {
         cartProvider.clearCart();
         // Navigate to home or orders list so user can check
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (c) => OrderSuccessPage(orderId: 'unknown', totalAmount: total.toDouble())),
+          MaterialPageRoute(
+            builder: (c) => OrderSuccessPage(
+              orderId: 'unknown',
+              totalAmount: total.toDouble(),
+            ),
+          ),
         );
       } else {
         print(
